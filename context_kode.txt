@@ -1,0 +1,319 @@
+﻿
+// === FILE: .\Main.kt ===
+
+
+// === FILE: .\contracts\TaskOperations.kt ===
+package com.studentmanager.contracts
+
+import com.studentmanager.model.Task
+import com.studentmanager.model.TaskStatus
+
+interface TaskOperations {
+
+    fun addTask(task: Task): Boolean
+
+    fun getAllTasks(): List<Task>
+
+    fun findTask(id: Int): Task?
+
+    fun deleteTask(id: Int): Boolean
+
+    fun updateTaskStatus(
+        id: Int,
+        status: TaskStatus
+    ): Boolean
+}
+
+// === FILE: .\exception\InvalidTaskException.kt ===
+package com.studentmanager.exception
+
+class InvalidTaskException(message: String) :
+    Exception(message)
+
+// === FILE: .\exception\TaskNotFoundException.kt ===
+package com.studentmanager.exception
+
+class TaskNotFoundException(message: String) :
+    Exception(message)
+
+// === FILE: .\model\Course.kt ===
+package com.studentmanager.model
+
+/** Data mata kuliah yang dapat dirujuk oleh tugas melalui courseId. */
+data class Course(
+    val id: String,
+    val name: String,
+    val lecturerName: String
+)
+
+
+// === FILE: .\model\Lecturer.kt ===
+package com.studentmanager.model
+
+class Lecturer(
+    name: String,
+    email: String,
+    val lecturerId: String
+) : User(name, email) {
+
+    override fun displayRole(): String = "Dosen"
+}
+
+
+// === FILE: .\model\Priority.kt ===
+package com.studentmanager.model
+
+/** Tingkat prioritas pengerjaan tugas. */
+enum class Priority {
+    LOW,
+    MEDIUM,
+    HIGH
+}
+
+
+// === FILE: .\model\Student.kt ===
+package com.studentmanager.model
+
+class Student(
+    name: String,
+    email: String,
+    val nim: String
+) : User(name, email) {
+
+    override fun displayRole(): String = "Mahasiswa"
+}
+
+
+// === FILE: .\model\Task.kt ===
+package com.studentmanager.model
+
+import java.time.LocalDate
+
+class Task(
+    val id: Int,
+    var title: String,
+    var description: String,
+    var deadline: LocalDate,
+    val courseId: String,
+    var priority: Priority,
+    status: TaskStatus = TaskStatus.NOT_STARTED
+) {
+    var status: TaskStatus = status
+        private set
+
+    fun updateStatus(newStatus: TaskStatus) {
+        status = newStatus
+    }
+
+    fun displayTask() {
+        println(
+            """
+            ID: $id
+            Judul: $title
+            Deskripsi: $description
+            Deadline: $deadline
+            Mata Kuliah ID: $courseId
+            Prioritas: $priority
+            Status: $status
+            """.trimIndent()
+        )
+    }
+}
+
+// === FILE: .\model\TaskStatus.kt ===
+package com.studentmanager.model
+
+/** Status pengerjaan sebuah tugas. */
+enum class TaskStatus {
+    NOT_STARTED,
+    IN_PROGRESS,
+    COMPLETED
+}
+
+
+// === FILE: .\model\User.kt ===
+package com.studentmanager.model
+
+abstract class User(
+    val name: String,
+    val email: String
+) {
+    abstract fun displayRole(): String
+}
+
+
+// === FILE: .\service\CourseManager.kt ===
+package com.studentmanager.service
+
+import com.studentmanager.model.Course
+
+class CourseManager {
+
+    private val courses = mutableListOf<Course>()
+
+    fun addCourse(course: Course): Boolean {
+
+        if (courses.any { it.id == course.id }) {
+            return false
+        }
+
+        if (course.name.isBlank()) {
+            return false
+        }
+
+        courses.add(course)
+        return true
+    }
+
+    fun getAllCourses(): List<Course> {
+        return courses.toList()
+    }
+
+    fun findCourse(id: String): Course? {
+        return courses.find { it.id == id }
+    }
+
+    fun showCourses() {
+
+        if (courses.isEmpty()) {
+            println("Belum ada mata kuliah.")
+            return
+        }
+
+        courses.forEach {
+            println("${it.id} - ${it.name} (${it.lecturerName})")
+        }
+    }
+
+    fun loadCourses(data: List<Course>) {
+        courses.clear()
+        courses.addAll(data)
+    }
+}
+
+// === FILE: .\service\TaskManager.kt ===
+package com.studentmanager.service
+
+import com.studentmanager.contracts.TaskOperations
+import com.studentmanager.model.*
+import java.time.LocalDate
+
+class TaskManager : TaskOperations {
+
+    private val tasks = mutableListOf<Task>()
+
+    override fun addTask(task: Task): Boolean {
+
+        if (tasks.any { it.id == task.id }) {
+            return false
+        }
+
+        if (task.title.isBlank()) {
+            return false
+        }
+
+        if (task.deadline.isBefore(LocalDate.now())) {
+            return false
+        }
+
+        tasks.add(task)
+        return true
+    }
+
+    override fun getAllTasks(): List<Task> {
+        return tasks.toList()
+    }
+
+    override fun findTask(id: Int): Task? {
+        return tasks.find { it.id == id }
+    }
+
+    override fun deleteTask(id: Int): Boolean {
+        return tasks.removeIf { it.id == id }
+    }
+
+    fun editTask(
+        id: Int,
+        title: String,
+        description: String,
+        deadline: LocalDate,
+        priority: Priority
+    ): Boolean {
+
+        val task = findTask(id) ?: return false
+
+        if (title.isBlank()) return false
+        if (deadline.isBefore(LocalDate.now())) return false
+
+        task.title = title
+        task.description = description
+        task.deadline = deadline
+        task.priority = priority
+
+        return true
+    }
+
+    override fun updateTaskStatus(
+        id: Int,
+        status: TaskStatus
+    ): Boolean {
+
+        val task = findTask(id) ?: return false
+
+        task.updateStatus(status)
+
+        return true
+    }
+
+    fun findByTitle(keyword: String): List<Task> {
+        return tasks.filter {
+            it.title.contains(keyword, ignoreCase = true)
+        }
+    }
+
+    fun findByDeadline(date: LocalDate): List<Task> {
+        return tasks.filter {
+            it.deadline == date
+        }
+    }
+
+    fun getTasksSortedByDeadline(): List<Task> {
+        return tasks.sortedBy { it.deadline }
+    }
+
+    fun showStatistics() {
+
+        val total = tasks.size
+
+        val completed = tasks.count {
+            it.status == TaskStatus.COMPLETED
+        }
+
+        val inProgress = tasks.count {
+            it.status == TaskStatus.IN_PROGRESS
+        }
+
+        val notStarted = tasks.count {
+            it.status == TaskStatus.NOT_STARTED
+        }
+
+        println("\n======= STATISTIK TUGAS =======")
+        println("Total tugas       : $total")
+        println("Belum dimulai     : $notStarted")
+        println("Sedang dikerjakan : $inProgress")
+        println("Selesai           : $completed")
+
+        val percentage = if (total > 0) {
+            completed * 100.0 / total
+        } else {
+            0.0
+        }
+
+        println("Progres selesai   : %.1f%%".format(percentage))
+    }
+
+    fun loadTasks(data: List<Task>) {
+        tasks.clear()
+        tasks.addAll(data)
+    }
+}
