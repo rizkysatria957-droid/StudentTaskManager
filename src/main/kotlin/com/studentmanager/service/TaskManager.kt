@@ -92,15 +92,15 @@ class TaskManager : TaskOperations {
         val total = tasks.size
 
         val completed = tasks.count {
-            it.getStatus() == TaskStatus.COMPLETED
+            it.status == TaskStatus.COMPLETED
         }
 
         val inProgress = tasks.count {
-            it.getStatus() == TaskStatus.IN_PROGRESS
+            it.status == TaskStatus.IN_PROGRESS
         }
 
         val notStarted = tasks.count {
-            it.getStatus() == TaskStatus.NOT_STARTED
+            it.status == TaskStatus.NOT_STARTED
         }
 
         println("\n======= STATISTIK TUGAS =======")
