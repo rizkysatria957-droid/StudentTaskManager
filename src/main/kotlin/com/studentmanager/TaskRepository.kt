@@ -1,9 +1,18 @@
 package com.studentmanager
 
+import com.studentmanager.model.Course
+import com.studentmanager.model.Priority
+import com.studentmanager.model.Task
+import com.studentmanager.model.TaskStatus
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.time.LocalDate
 
+/**
+ * Mengelola penyimpanan dan pembacaan data Course dan Task ke file CSV
+ * di dalam folder yang ditentukan oleh 'directory'.
+ */
 class TaskRepository(
     private val directory: Path = Paths.get("data")
 ) {
@@ -16,18 +25,87 @@ class TaskRepository(
         }
     }
 
-    fun saveRawData(courseLines: List<String>, taskLines: List<String>) {
+    /**
+     * Menyimpan seluruh daftar Course dan Task ke dalam file CSV terpisah.
+     */
+    fun save(courses: List<Course>, tasks: List<Task>) {
+        if (!Files.exists(directory)) {
+            Files.createDirectories(directory)
+        }
+
+        val courseLines = courses.map { course ->
+            "${course.id}|${sanitize(course.name)}|${sanitize(course.lecturerName)}"
+        }
         Files.write(coursesFile, courseLines)
+
+        val taskLines = tasks.map { task ->
+            listOf(
+                task.id,
+                sanitize(task.title),
+                sanitize(task.description),
+                task.deadline.toString(),
+                task.courseId,
+                task.priority.name,
+                task.status.name
+            ).joinToString("|")
+        }
         Files.write(tasksFile, taskLines)
     }
 
-    fun loadRawCourses(): List<String> {
+    /**
+     * Memuat kembali daftar Course dari courses.csv.
+     */
+    fun loadCourses(): List<Course> {
         if (!Files.exists(coursesFile)) return emptyList()
-        return Files.readAllLines(coursesFile).filter { it.isNotBlank() }
+
+        return Files.readAllLines(coursesFile)
+            .filter { it.isNotBlank() }
+            .mapNotNull { line ->
+                val parts = line.split("|")
+                if (parts.size >= 3) {
+                    Course(
+                        id = parts[0],
+                        name = parts[1],
+                        lecturerName = parts[2]
+                    )
+                } else {
+                    null
+                }
+            }
     }
 
-    fun loadRawTasks(): List<String> {
+    /**
+     * Memuat kembali daftar Task dari tasks.csv.
+     */
+    fun loadTasks(): List<Task> {
         if (!Files.exists(tasksFile)) return emptyList()
-        return Files.readAllLines(tasksFile).filter { it.isNotBlank() }
+
+        return Files.readAllLines(tasksFile)
+            .filter { it.isNotBlank() }
+            .mapNotNull { line ->
+                val parts = line.split("|")
+                if (parts.size >= 7) {
+                    try {
+                        Task(
+                            id = parts[0].toInt(),
+                            title = parts[1],
+                            description = parts[2],
+                            deadline = LocalDate.parse(parts[3]),
+                            courseId = parts[4],
+                            priority = Priority.valueOf(parts[5]),
+                            status = TaskStatus.valueOf(parts[6])
+                        )
+                    } catch (e: Exception) {
+                        null
+                    }
+                } else {
+                    null
+                }
+            }
+    }
+
+    /** Menghindari karakter '|' atau enter merusak struktur kolom CSV */
+    private fun sanitize(text: String): String {
+        return text.replace("|", "/").replace("\n", " ").replace("\r", "")
     }
 }
