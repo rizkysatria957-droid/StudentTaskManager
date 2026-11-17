@@ -1,6 +1,5 @@
 package com.studentmanager.model
 
-/** Data pengguna dengan peran mahasiswa. */
 class Student(
     name: String,
     email: String,
