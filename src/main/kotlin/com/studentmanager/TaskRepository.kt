@@ -9,10 +9,6 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.time.LocalDate
 
-/**
- * Mengelola penyimpanan dan pembacaan data Course dan Task ke file CSV
- * di dalam folder yang ditentukan oleh 'directory'.
- */
 class TaskRepository(
     private val directory: Path = Paths.get("data")
 ) {
@@ -25,9 +21,6 @@ class TaskRepository(
         }
     }
 
-    /**
-     * Menyimpan seluruh daftar Course dan Task ke dalam file CSV terpisah.
-     */
     fun save(courses: List<Course>, tasks: List<Task>) {
         if (!Files.exists(directory)) {
             Files.createDirectories(directory)
@@ -52,9 +45,6 @@ class TaskRepository(
         Files.write(tasksFile, taskLines)
     }
 
-    /**
-     * Memuat kembali daftar Course dari courses.csv.
-     */
     fun loadCourses(): List<Course> {
         if (!Files.exists(coursesFile)) return emptyList()
 
@@ -74,9 +64,6 @@ class TaskRepository(
             }
     }
 
-    /**
-     * Memuat kembali daftar Task dari tasks.csv.
-     */
     fun loadTasks(): List<Task> {
         if (!Files.exists(tasksFile)) return emptyList()
 
@@ -104,7 +91,6 @@ class TaskRepository(
             }
     }
 
-    /** Menghindari karakter '|' atau enter merusak struktur kolom CSV */
     private fun sanitize(text: String): String {
         return text.replace("|", "/").replace("\n", " ").replace("\r", "")
     }
