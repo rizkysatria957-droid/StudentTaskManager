@@ -1,0 +1,11 @@
+services:
+  student-task-manager:
+    build: .
+    container_name: student-task-manager
+    stdin_open: true
+    tty: true
+    volumes:
+      - student-task-data:/app/data
+
+volumes:
+  student-task-data:
