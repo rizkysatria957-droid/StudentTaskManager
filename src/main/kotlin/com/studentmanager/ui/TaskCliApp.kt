@@ -8,7 +8,7 @@ import com.studentmanager.service.CourseManager
 import com.studentmanager.service.TaskManager
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
-
+import com.studentmanager.TaskRepository
 /**
  * Palet warna terminal menggunakan standar ANSI Escape Code.
  * Berfungsi memanipulasi warna teks, background, dan gaya tulisan di console.
@@ -36,9 +36,11 @@ object Ansi {
 
 class TaskCliApp(
     private val taskManager: TaskManager,
-    private val courseManager: CourseManager
+    private val courseManager: CourseManager,
+    private val repository: TaskRepository
 ) {
-    private var nextTaskId = 1
+    private var nextTaskId =
+        (taskManager.getAllTasks().maxOfOrNull { it.id } ?: 0) + 1
 
     fun start() {
         var running = true
@@ -59,6 +61,7 @@ class TaskCliApp(
                 9 -> handleAddCourse()
                 10 -> handleShowCourses()
                 0 -> {
+                    saveData()
                     printExitScreen()
                     running = false
                 }
@@ -69,6 +72,7 @@ class TaskCliApp(
             }
         }
     }
+
 
     // ==========================================
     // ELEMEN VISUAL & BANNER
@@ -151,6 +155,7 @@ class TaskCliApp(
 
         val isSuccess = taskManager.addTask(newTask)
         if (isSuccess) {
+            saveData()
             println("\n${Ansi.GREEN}${Ansi.BOLD} [SUKSES] Tugas ID $nextTaskId ('$title') berhasil ditambahkan!${Ansi.RESET}")
             nextTaskId++
         } else {
@@ -193,6 +198,7 @@ class TaskCliApp(
         val isUpdated = taskManager.updateTaskStatus(id, newStatus)
 
         if (isUpdated) {
+            saveData()
             println("\n${Ansi.GREEN} [SUKSES] Status berhasil diubah menjadi: ${formatStatusBadge(newStatus)}${Ansi.RESET}")
         } else {
             println("\n${Ansi.RED}[!] Gagal memperbarui status tugas.${Ansi.RESET}")
@@ -226,6 +232,7 @@ class TaskCliApp(
 
         val isSuccess = taskManager.editTask(id, newTitle, newDescription, newDeadline, newPriority)
         if (isSuccess) {
+            saveData()
             println("\n${Ansi.GREEN} [SUKSES] Data tugas ID $id berhasil diperbarui!${Ansi.RESET}")
         } else {
             println("\n${Ansi.RED}[!] [GAGAL] Gagal mengedit tugas. Pastikan deadline valid.${Ansi.RESET}")
@@ -243,6 +250,7 @@ class TaskCliApp(
 
         val isDeleted = taskManager.deleteTask(id)
         if (isDeleted) {
+            saveData()
             println("\n${Ansi.GREEN} [SUKSES] Tugas ID $id berhasil dihapus dari sistem.${Ansi.RESET}")
         } else {
             println("\n${Ansi.RED}[!] Tugas dengan ID $id tidak ditemukan.${Ansi.RESET}")
@@ -282,6 +290,13 @@ class TaskCliApp(
         pausePrompt()
     }
 
+    private fun saveData() {
+        repository.save(
+            courseManager.getAllCourses(),
+            taskManager.getAllTasks()
+        )
+    }
+
     private fun handleShowStatisticsWithProgressBar() {
         // Panggil logic statistik bawaan temen lu
         taskManager.showStatistics()
@@ -310,6 +325,7 @@ class TaskCliApp(
         val isSuccess = courseManager.addCourse(course)
 
         if (isSuccess) {
+            saveData()
             println("\n${Ansi.GREEN} [SUKSES] Mata kuliah '${course.name}' berhasil disimpan!${Ansi.RESET}")
         } else {
             println("\n${Ansi.RED}[!] [GAGAL] ID '$id' sudah ada atau nama tidak boleh kosong.${Ansi.RESET}")
